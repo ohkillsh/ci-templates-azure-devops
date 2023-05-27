@@ -1,0 +1,45 @@
+parameters:
+  - name: TerraformVersion
+    displayName: Inform Terraform Version
+    type: string
+    default: "1.3.9"
+
+  - name: runTFsec
+    displayName: Run Terrafom TFsec?
+    type: boolean
+    default: false
+
+  - name: runCheckChanges
+    displayName: Run Terrafom CheckChanges?
+    type: boolean
+    default: false
+
+steps:
+- task: DownloadBuildArtifacts@0
+  inputs:
+    artifactName: "drop"
+  displayName: "Download Plan Artifact"
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: "$(System.ArtifactsDirectory)/drop/$(Build.BuildId).tgz"
+    destinationFolder: "$(System.DefaultWorkingDirectory)/apply"
+    cleanDestinationFolder: false
+    overwriteExistingFiles: false
+  displayName: "Extract Plan Artifact"
+
+- task: TerraformInstaller@0
+  displayName: "install"
+  inputs:
+    terraformVersion: ${{ parameters.TerraformVersion }}
+
+- bash: |
+    terraform apply --input=false stage.tfplan
+  workingDirectory: "$(System.DefaultWorkingDirectory)/apply"
+  env:
+    ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+    ARM_CLIENT_ID: $(tf-clientId)
+    ARM_CLIENT_SECRET: $(tf-clientSecret)
+    ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
+    ARM_TENANT_ID: $(tf-tenantId)
+  displayName: "Terraform Apply"

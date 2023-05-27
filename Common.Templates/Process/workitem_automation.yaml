@@ -1,0 +1,8 @@
+steps:
+  - task: mspremier.CreateWorkItem.CreateWorkItem-task.CreateWorkItem@1
+    displayName: "Create work item"
+    inputs:
+      workItemType: "Feature"
+      title: "$(Build.DefinitionName)-$(Build.BuildNumber)"
+      associate: true
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')

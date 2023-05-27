@@ -1,0 +1,88 @@
+parameters:
+  # DOTNET
+  - name: runTests
+    type: boolean
+    default: false
+  - name: runTestsCodeCoverageEnabled
+    type: boolean
+    default: true
+
+  - name: SolutionPath
+    type: object
+
+  - name: csproj
+    type: object
+    default: null
+
+  # JavaScript Framework
+  - name: npm
+    type: boolean
+    default: false
+  - name: env
+    type: object
+    default: null
+
+  # SonarQube
+  - name: SonarqubeServiceConnection
+    type: string
+
+  - name: SonarqubeProjectName
+    type: string
+
+steps:
+  - task: SonarSource.sonarqube.15B84CA1-B62F-4A2A-A403-89B77A063157.SonarQubePrepare@4
+    displayName: "Prepare analysis on SonarQube"
+    inputs:
+      SonarQube: ${{ parameters.SonarqubeServiceConnection }}
+      projectKey: ${{ parameters.SonarqubeProjectName }}
+      projectName: ${{ parameters.SonarqubeProjectName }}
+      projectVersion: $(Build.BuildNumber)
+
+  - task: NuGetToolInstaller@1
+
+  - ${{ each parameter in parameters.SolutionPath }}:
+      - task: NuGetCommand@2
+        displayName: "NuGet restore ${{ parameter.key }}"
+        inputs:
+          restoreSolution: ${{ parameter.value }}
+
+      - task: MSBuild@1
+        displayName: "Build ${{ parameter.key }}"
+        inputs:
+          solution: ${{ parameter.value }}
+          msbuildArchitecture: "x64"
+          platform: "$(BuildPlatform)"
+          configuration: "$(BuildConfiguration)"
+          msbuildArguments: "/p:DeployOnBuild=True"
+          clean: true
+
+  - ${{ if eq(parameters.runTests, true) }}:
+      - task: VSTest@2
+        inputs:
+          testAssemblyVer2: |
+            **\*UnitTests.dll
+            !**\*TestAdapter.dll
+            !**\obj\**
+          codeCoverageEnabled: ${{ parameters.runTestsCodeCoverageEnabled }}
+          testRunTitle: "$(Build.Repository.Name).UnitTests $(Build.SourceBranchName) ($(System.JobAttempt))"
+          failOnMinTestsNotRun: false
+        displayName: "VSTest - UnitTests"
+
+  - ${{ if eq(parameters.npm, true) }}:
+      - task: Npm@1
+        displayName: "npm install"
+        inputs:
+          verbose: false
+  - ${{ each parameter in parameters.env }}:
+      - task: Npm@1
+        displayName: "npm custom"
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: "run build -- --mode ${{ parameter.value }} --dest ${{ parameter.key }}"
+
+  - task: SonarSource.sonarqube.6D01813A-9589-4B15-8491-8164AEB38055.SonarQubeAnalyze@4
+    displayName: "Run Code Analysis"
+
+  - task: SonarSource.sonarqube.291ed61f-1ee4-45d3-b1b0-bf822d9095ef.SonarQubePublish@4
+    displayName: "Publish Quality Gate Result"

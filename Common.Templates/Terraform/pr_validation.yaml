@@ -1,0 +1,72 @@
+parameters:
+  - name: TerraformVersion
+    displayName: Inform Terraform Version
+    type: string
+    default: "1.3.9"
+      
+  - name: runTFsec
+    displayName: Run Terrafom TFsec?
+    type: boolean
+    default: true
+
+  - name: runCheckChanges
+    displayName: Run Terrafom CheckChanges?
+    type: boolean
+    default: false
+
+steps:
+  - task: TerraformInstaller@0
+    displayName: "install"
+    inputs:
+      terraformVersion: ${{ parameters.TerraformVersion }}
+
+  - bash: |
+      terraform fmt --recursive
+    workingDirectory: $(TF-Path)
+    displayName: "Terraform Format"
+
+  - bash: |
+      terraform -v
+      terraform init \
+        --input=false 
+    workingDirectory: $(TF-Path)
+    env:
+      TF_IN_AUTOMATION: $(tf_in_automation)
+      ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+      ARM_CLIENT_ID: $(tf-clientId)
+      ARM_CLIENT_SECRET: $(tf-clientSecret)
+      ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
+      ARM_TENANT_ID: $(tf-tenantId)
+    displayName: "Terraform Init"
+
+  - bash: |
+      terraform plan --input=false --out=stage.tfplan
+    workingDirectory: $(TF-Path)
+    env:
+      ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+      ARM_CLIENT_ID: $(tf-clientId)
+      ARM_CLIENT_SECRET: $(tf-clientSecret)
+      ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
+      ARM_TENANT_ID: $(tf-tenantId)
+    displayName: "Terraform Plan"
+
+  - bash: |
+      terraform show -json stage.tfplan > stage.json
+      jq '.resource_changes[] | select(.change.actions[] == "delete").address' stage.json
+    workingDirectory: $(TF-Path)
+    displayName: "REVIEW - Resources to Destroy"
+
+  - ${{ if eq(parameters.runCheckChanges, true) }}:
+    - bash: |
+        docker run -v $PWD:/workspace -w /workspace ghcr.io/dineshba/tf-summarize stage.tfplan
+      workingDirectory: $(TF-Path)
+      continueOnError: true
+      displayName: "Terraform Check Changes"
+
+  - ${{ if eq(parameters.runTFsec, true) }}:
+    - bash: |
+        docker run --rm -v $PWD:/app -w /app tfsec/tfsec .
+      workingDirectory: $(TF-Path)
+      continueOnError: true
+      displayName: "Validação TFsec"
+

@@ -1,0 +1,88 @@
+parameters:
+  - name: dockerContext
+    type: string
+    default: "**"
+  
+  - name: dockerfilePath
+    type: string 
+    default: "**/Dockerfile"
+
+  - name: downloadSecureFile
+    type: boolean
+    default: false
+
+  - name: secureFileName
+    type: string
+    default: null
+
+  - name: containerRegistryName
+    type: string
+
+  - name: containerRepository
+    type: string
+
+  - name: isHelmPackage
+    type: boolean
+    default: false
+
+  - name: helmVersion
+    type: string
+    default: "3.8.2"
+
+  - name: helmPackageVersion
+    type: string
+    default: '$(Build.BuildId)'
+
+  - name: helmChartPath
+    type: string
+    default: "helm"
+
+steps:
+
+# Download SecureFile If Bool eq TRUE
+  - ${{ if eq(parameters.downloadSecureFile, true) }}:
+      - powershell: |
+          copy-item "${{ parameters.secureFileName}}.secureFilePath" "$(System.DefaultWorkingDirectory)"
+        workingDirectory: $(System.DefaultWorkingDirectory)
+        displayName: "Copy Secure File"
+
+  - task: Docker@2
+    displayName: Login
+    inputs:
+      command: login
+      containerRegistry: ${{ parameters.containerRegistryName }}
+
+  - task: Docker@2
+    displayName: Build
+    inputs:
+      command: build
+      repository: ${{ parameters.containerRepository}}
+      Dockerfile:  ${{ parameters.dockerfilePath}}
+      buildContext: ${{ parameters.dockerContext }}
+      tags: |
+        $(Build.BuildId)
+        latest
+
+  - task: Docker@2
+    displayName: Push
+    inputs:
+      containerRegistry: ${{ parameters.containerRegistryName }}
+      repository: ${{ parameters.containerRepository }}
+      tags: |
+        $(Build.BuildId)
+        latest
+      command: "push"
+
+# HELMING If Bool eq TRUE
+  - ${{ if eq(parameters.isHelmPackage, true) }}:
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: ${{ parameters.helmChartPath }}
+          Contents: "**"
+          TargetFolder: $(build.artifactstagingdirectory)
+        displayName: "Copia chart helm"
+        
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: drop'
+
+

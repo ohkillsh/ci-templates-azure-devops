@@ -1,0 +1,142 @@
+parameters:
+  - name: runTests
+    type: boolean
+    default: false
+
+  - name: artifactsToPublish
+    type: object
+    default: null
+
+  - name: SolutionPath
+    type: object
+    default: null
+
+  - name: npm
+    type: boolean
+    default: false
+
+  - name: env
+    type: object
+    default: null
+
+  - name: csproj
+    type: object
+    default: null
+
+  - name: console
+    type: boolean
+    default: false
+    
+  - name: ConsoleArtifacts
+    type: object
+    default: null
+
+  - name: node
+    type: object
+    default: null
+
+steps:
+
+  - task: NuGetToolInstaller@1
+
+  - ${{ each parameter in parameters.SolutionPath }}:
+      - task: NuGetCommand@2
+        displayName: "NuGet restore ${{ parameter.key }}"
+        inputs:
+          restoreSolution: ${{ parameter.value }}
+
+      - task: MSBuild@1
+        displayName: "Build ${{ parameter.key }}"
+        inputs:
+          solution: ${{ parameter.value }}
+          msbuildArchitecture: "x64"
+          platform: '$(BuildPlatform)'
+          configuration: '$(BuildConfiguration)'
+          msbuildArguments: "/p:DeployOnBuild=True"
+          clean: true
+
+  - ${{ if eq(parameters.runTests, true) }}:
+      - task: VSTest@2
+        displayName: 'VsTest - $(Build.Repository.Name).UnitTests'
+        inputs:
+          testAssemblyVer2: |
+            **\*UnitTests.dll
+            !**\*TestAdapter.dll
+            !**\obj\**
+          testRunTitle: '$(Build.Repository.Name).UnitTests $(Build.SourceBranchName) ($(System.JobAttempt))'
+          failOnMinTestsNotRun: true
+
+  - ${{ each parameter in parameters.artifactsToPublish }}:
+      - task: CopyFiles@2
+        displayName: "Copy Files from ${{ parameter.Key }} to: $(Build.ArtifactStagingDirectory)"
+        inputs:
+          SourceFolder: ${{ parameter.value }}
+          Contents: "**"
+          TargetFolder: "$(Build.ArtifactStagingDirectory)/${{ parameter.Key }}"
+
+      - publish: "$(Build.ArtifactStagingDirectory)/${{ parameter.Key }}"
+        artifact: ${{ parameter.Key }}
+        displayName: "Publish Artifact: ${{ parameter.Key }}"
+
+  - ${{ each parameter in parameters.node }}:
+      - task: NodeTool@0
+        displayName: 'Use Node ${{ parameter.value }}'
+        inputs:
+          versionSpec: ${{ parameter.value }}
+
+  - ${{ if eq(parameters.npm, true) }}:
+      - task: Npm@1
+        displayName: 'npm install'
+        inputs:
+          verbose: false
+
+  - ${{ each parameter in parameters.env }}:
+      - task: Npm@1
+        displayName: 'npm custom'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run build -- --mode ${{ parameter.value }} --dest ${{ parameter.key }}'
+
+      - task: CopyFiles@2
+        displayName: 'Copy Files to: ${{ parameter.key }}'
+        inputs:
+          Contents: |
+            web.config
+            App.Release.config
+          TargetFolder: ${{ parameter.key }}
+
+      - task: CopyFiles@2
+        displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+        inputs:
+          SourceFolder: ${{ parameter.key }}
+          TargetFolder: '$(build.artifactstagingdirectory)/${{ parameter.key }}'
+
+      - publish: "$(Build.ArtifactStagingDirectory)/${{ parameter.Key }}"
+        artifact: ${{ parameter.Key }}
+        displayName: "Publish Artifact: ${{ parameter.Key }}"
+
+  - ${{ if eq(parameters.console, true) }}:
+      - powershell: |
+          Write-Host "Build Console"
+        displayName: 'Build Console'
+
+  - ${{ each parameter in parameters.csproj }}:  
+      - task: CmdLine@1
+        displayName: 'Run dotnet.exe - ${{ parameter.key }}'
+        inputs:
+          filename: dotnet.exe
+          arguments: 'publish -c $(BuildConfiguration) -r win-x64 --self-contained $(SelfContained)'
+          workingFolder: ${{ parameter.value }}
+
+  - ${{ each parameter in parameters.ConsoleArtifacts }}:
+      - task: CopyFiles@2
+        displayName: "Copy Files from ${{ parameter.Key }} to: $(Build.ArtifactStagingDirectory)"
+        inputs:
+          SourceFolder: ${{ parameter.value }}
+          Contents: "**"
+          TargetFolder: "$(Build.ArtifactStagingDirectory)/${{ parameter.Key }}"
+
+      - publish: "$(Build.ArtifactStagingDirectory)/${{ parameter.Key }}"
+        artifact: ${{ parameter.Key }}
+        displayName: "Publish Artifact: ${{ parameter.Key }}"

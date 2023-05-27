@@ -1,0 +1,14 @@
+parameters:
+  - name: Subscription-ID
+    type: string
+
+  - name: KeyVault-Name
+    type: string
+
+steps:
+  - task: AzureKeyVault@2
+    inputs:
+      azureSubscription: ${{ parameters.Subscription-ID }}
+      KeyVaultName: ${{ parameters.KeyVault-Name }}
+      SecretsFilter: "*"
+      RunAsPreJob: true

@@ -1,0 +1,94 @@
+parameters:
+
+# DOTNET 
+  - name: runTests
+    type: boolean
+    default: false
+  - name: runTestsCodeCoverageEnabled
+    type: boolean
+    default: true
+
+  - name: SolutionPath
+    type: object
+
+  - name: csproj
+    type: object
+    default: null
+
+# JavaScript Framework
+  - name: npm
+    type: boolean
+    default: false
+  - name: env
+    type: object
+    default: null
+
+# SonarQube 
+  - name: SonarCloudServiceConnection
+    type: string
+    default: "SonarCloud"
+  
+  - name: SonarqubeProjectName
+    type: string
+    
+  - name: SonarqubeOrganization
+    type: string
+   
+
+steps:
+  
+  - task: SonarCloudPrepare@1
+    inputs:
+      SonarCloud: ${{ parameters.SonarCloudServiceConnection }}
+      organization: ${{ parameters.SonarqubeOrganization }}
+      scannerMode: 'MSBuild'
+      projectKey:  ${{ parameters.SonarqubeProjectName }}
+
+  - task: NuGetToolInstaller@1
+
+  - ${{ each parameter in parameters.SolutionPath }}:
+      - task: NuGetCommand@2
+        displayName: "NuGet restore ${{ parameter.key }}"
+        inputs:
+          restoreSolution: ${{ parameter.value }}
+
+      - task: MSBuild@1
+        displayName: "Build ${{ parameter.key }}"
+        inputs:
+          solution: ${{ parameter.value }}
+          msbuildArchitecture: "x64"
+          platform: '$(BuildPlatform)'
+          configuration: '$(BuildConfiguration)'
+          msbuildArguments: "/p:DeployOnBuild=True"
+          clean: true
+
+  - ${{ if eq(parameters.runTests, true) }}:
+      - task: VSTest@2
+        inputs:
+          testAssemblyVer2: |
+            **\*UnitTests.dll
+            !**\*TestAdapter.dll
+            !**\obj\**
+          codeCoverageEnabled: ${{ parameters.runTestsCodeCoverageEnabled }}
+          testRunTitle: 'Fiscal.UnitTests $(Build.SourceBranchName) ($(System.JobAttempt))'
+          failOnMinTestsNotRun: false
+        displayName: 'VSTest - UnitTests'
+
+  - ${{ if eq(parameters.npm, true) }}:
+      - task: Npm@1
+        displayName: 'npm install'
+        inputs:
+          verbose: false
+  - ${{ each parameter in parameters.env }}:
+      - task: Npm@1
+        displayName: 'npm custom'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run build -- --mode ${{ parameter.value }} --dest ${{ parameter.key }}'
+
+  - task: SonarCloudAnalyze@1
+
+  - task: SonarCloudPublish@1
+    inputs:
+      pollingTimeoutSec: '300'

@@ -1,0 +1,58 @@
+parameters:
+  - name: artifactZipfile
+    type: string
+    default: ""
+  - name: serversToDeploy
+    type: string
+    default: ""
+  - name: winRMLogin
+    type: string
+    default: ""
+  - name: winRMPassword
+    type: string
+    default: ""
+  - name: WebDeployFolder
+    type: string
+    default: 'c:\staging\webdeploy'
+  - name: siteFQDN
+    type: string
+    default: ""
+  - name: sitePath
+    type: string
+    default: 'c:\sites'
+  - name: WebDeployPackage
+    type: string
+
+steps:
+- task: WindowsMachineFileCopy@2
+  displayName: Copy files - WebDeploy Package
+  inputs:
+    SourcePath: ${{ parameters.artifactZipfile }}
+    MachineNames: ${{ parameters.serversToDeploy }}
+    AdminUserName: ${{ parameters.winRMLogin }}
+    AdminPassword: ${{ parameters.winRMPassword }}
+    TargetPath: ${{ parameters.WebDeployFolder }}
+    AdditionalArguments: /is /it
+
+- task: ms-vscs-rm.iiswebapp.iiswebappmgmt-task.IISWebAppMgmt@3
+  displayName: WinRM IIS - Create WebSite
+  inputs:
+    machinesList: ${{ parameters.serversToDeploy }}
+    AdminUserName: ${{ parameters.winRMLogin }}
+    AdminPassword: ${{ parameters.winRMPassword }}
+    WebsiteName: ${{ parameters.siteFQDN }}
+    WebsitePhysicalPath: ${{ parameters.sitePath }}\${{ parameters.siteFQDN }}
+    AddBinding: true
+    CreateOrUpdateAppPoolForWebsite: true
+    HostNameWithHttp: ${{ parameters.siteFQDN }}
+    AppPoolNameForWebsite: ${{ parameters.siteFQDN }}
+
+- task: ms-vscs-rm.iiswebapp.iiswebappdeploy-task.IISWebAppDeploy@2
+  displayName: WinRM  IIS - Deploy IIS App
+  inputs:
+    machinesList: ${{ parameters.serversToDeploy }}
+    AdminUserName: ${{ parameters.winRMLogin }}
+    AdminPassword: ${{ parameters.winRMPassword }}
+    WebDeployPackage: ${{ parameters.WebDeployPackage }}
+    WebsiteName: ${{ parameters.siteFQDN }}
+    TakeAppOffline: true

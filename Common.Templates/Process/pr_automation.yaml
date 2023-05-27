@@ -1,0 +1,18 @@
+steps:
+  - task: ShaykiAbramczyk.CreatePullRequest.CreatePullRequest.CreatePullRequest@1
+    displayName: "Create Pull Request - develop"
+    inputs:
+      targetBranch: develop
+      title: "Auto Merge main>develop"
+      bypassPolicy: true
+      autoComplete: true
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+
+  - task: ShaykiAbramczyk.CreatePullRequest.CreatePullRequest.CreatePullRequest@1
+    displayName: "Create Pull Request - QA"
+    inputs:
+      targetBranch: QA
+      title: "Auto Merge main>QA"
+      bypassPolicy: true
+      autoComplete: true
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
