@@ -117,7 +117,10 @@ trigger:
       - features/*
   paths:
     exclude:
-    - .azdevops/*
+    - '.azdevops/*'
+    - '**/*.yaml'
+    - '**/*.yml'
+
 
 
 stages:
@@ -172,7 +175,20 @@ resources:
         endpoint: 
         ref: main
 
-trigger: none
+trigger:
+  branches:
+    include:
+      - featues/*
+      - bugfix/*
+    exclude:
+      - main
+      - develop
+      - QA
+  paths:
+    exclude:
+    - '.azdevops/*'
+    - '**/*.yaml'
+    - '**/*.yml'
 
 stages:
   - stage:
