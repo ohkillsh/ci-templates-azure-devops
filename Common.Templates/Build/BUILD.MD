@@ -175,20 +175,7 @@ resources:
         endpoint: 
         ref: main
 
-trigger:
-  branches:
-    include:
-      - featues/*
-      - bugfix/*
-    exclude:
-      - main
-      - develop
-      - QA
-  paths:
-    exclude:
-    - '.azdevops/*'
-    - '**/*.yaml'
-    - '**/*.yml'
+trigger: none 
 
 stages:
   - stage:
