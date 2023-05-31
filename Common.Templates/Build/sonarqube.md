@@ -12,8 +12,8 @@ repositories:
 
 trigger: none
 schedules: 
-# CRON: Rodará apenas se houver novas mudanças na main desde a ultima execução. Recorrencia: Todo dia 8am de segunda a sexta :) 
-- cron: "0 8 * * 1-5"
+# CRON: Rodará apenas se houver novas mudanças na main desde a ultima execução. Recorrencia: Todo dia 8am (Padrão é UTC 00:00, cuja diferença é 3h do horário de Brazil/SP) de segunda a sexta :) 
+- cron: "0 11 * * 1-5"
   displayName: Sonarqube Execution Task
   branches:
     include: 
