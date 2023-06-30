@@ -37,7 +37,7 @@ steps:
     terraform apply --input=false stage.tfplan
   workingDirectory: "$(System.DefaultWorkingDirectory)/apply"
   env:
-    ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+    ARM_ACCESS_KEY: $(stg-terraform-access-key)
     ARM_CLIENT_ID: $(tf-clientId)
     ARM_CLIENT_SECRET: $(tf-clientSecret)
     ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)

@@ -24,7 +24,7 @@ steps:
       terraform fmt
     workingDirectory: $(TF-Path)
     displayName: "Terraform Format"
-
+# TODO: remover ARM_ACCESS_KEY. Afinal, a autenticação utiliza service principal
   - bash: |
       terraform -v
       terraform init \
@@ -36,7 +36,7 @@ steps:
     workingDirectory: $(TF-Path)
     env:
       TF_IN_AUTOMATION: $(tf_in_automation)
-      ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+      ARM_ACCESS_KEY: $(stg-terraform-access-key)
       ARM_CLIENT_ID: $(tf-clientId)
       ARM_CLIENT_SECRET: $(tf-clientSecret)
       ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
@@ -47,7 +47,7 @@ steps:
       terraform plan --input=false --out=stage.tfplan
     workingDirectory: $(TF-Path)
     env:
-      ARM_ACCESS_KEY: $(stg-terraform-accesskey)
+      ARM_ACCESS_KEY: $(stg-terraform-access-key)
       ARM_CLIENT_ID: $(tf-clientId)
       ARM_CLIENT_SECRET: $(tf-clientSecret)
       ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
