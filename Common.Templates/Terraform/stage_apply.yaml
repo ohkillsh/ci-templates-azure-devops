@@ -42,4 +42,6 @@ steps:
     ARM_CLIENT_SECRET: $(tf-clientSecret)
     ARM_SUBSCRIPTION_ID: $(tf-subscriptionId)
     ARM_TENANT_ID: $(tf-tenantId)
+    TF_VAR_cloudflare_api_token: $(cloudflare-api-token)
+    TF_VAR_cloudflare_email: $(cloudflare-email)
   displayName: "Terraform Apply"
