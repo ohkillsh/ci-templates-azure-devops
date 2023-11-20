@@ -1,0 +1,63 @@
+variables:
+  SOLUTION_FILE: 'solution.sln'
+  PROJECT_STARTUP: 'path/to/project.csproj'
+  PROJECT_DATABASE: 'path/to/database.csproj'
+  VERSION_DOTNET_EF: "7.x.x"
+  VERSION_DOTNET: "7.x.x"
+  DB_CONTEXT: 'DataContext'
+  VM_IMAGE: 'ubuntu-latest'
+  NUGET_REPOSITORY: 'https://api.nuget.org/v3/index.json'
+
+stages:
+
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+
+  - job: BuildBackend
+    displayName: 'Build Backend'
+    pool:
+      vmImage: $(VM_IMAGE)
+    steps:
+
+    - task: UseDotNet@2
+      inputs:
+        version: $(VERSION_DOTNET)
+        packageType: 'sdk'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore'
+      inputs:
+        command: 'restore'
+        projects: '$(SOLUTION_FILE)'
+        feedsToUse: 'select'
+        vstsFeed: $(NUGET_REPOSITORY)
+
+    - script: |
+        dotnet tool install --global dotnet-ef --version $(VERSION_DOTNET_EF)
+        mkdir "$(Build.ArtifactStagingDirectory)/build-artifact"
+        mkdir "$(Build.ArtifactStagingDirectory)/migrations-artifact"
+      displayName: 'Preparation'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish'
+      inputs:
+        command: 'publish'
+        projects: $(PROJECT_STARTUP)
+        arguments: '-c Release --no-restore --no-self-contained -o $(Build.ArtifactStagingDirectory)/build-artifact'
+
+    - script: |
+        cd $(PROJECT_DATABASE)
+        dotnet ef migrations bundle --startup-project "../$(PROJECT_STARTUP)" --self-contained --verbose --force -o "$(Build.ArtifactStagingDirectory)/migrations-artifact/efbundle"
+      displayName: 'Bundle Migrations'
+
+    - script: |
+        cd $(PROJECT_DATABASE)
+        dotnet ef migrations script --startup-project "../$(PROJECT_STARTUP)" -i -o "$(Build.ArtifactStagingDirectory)/migrations-artifact/migration.sql"
+      displayName: 'SQL Script Migrations'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: backend-$(Build.SourceBranchName)'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'backend-$(Build.SourceBranchName)'
