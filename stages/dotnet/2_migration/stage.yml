@@ -1,0 +1,66 @@
+trigger: none
+
+parameters:
+
+variables:
+
+  dockerRegistryServiceConnection: 'acr-resource'
+  imageRepository: 'docker-image-name'
+  buildContext: '$(Build.SourcesDirectory)/'
+  DOCKERFILE_PATH: 'src/Dockerfile'
+  
+  DOTNET_CSPROJ_INFRASTRUCTURE: ""
+  DOTNET_CSPROJ_STARTUP: ""
+  DOTNET_CSPROJ_TESTS: ""
+
+  vmImageName: 'ubuntu-latest'
+  DOTNET_EF_VERSION: "7.0.14"
+  tag: '$(Build.BuildId)'
+
+  # Steps Variables
+  devops_org: organizacao
+  devops_team_project: teamProject
+  devops_repo: DevOps
+
+
+
+  AZURE_SERVICE_CONNECTION: "Set the azure subscription"
+  
+  #Azure Update SQL Firewall Rule
+  AZ_SQL_SERVER: "server"
+  AZ_SQL_RESOURCE_GROUP: "rg-sql"
+
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+
+    - checkout: none
+      persistCredentials: true
+
+    - bash: |
+        # git defaults
+        git --version && git config --global http.version HTTP/1.1
+        # set variables from pipeline
+        org=${{ variables.devops_org }}; project="${{ variables.devops_team_project }}; repo=${{ variables.devops_repo }}
+        # clone repo
+        git clone https://${org}:$SYSTEM_ACCESSTOKEN@dev.azure.com/${org}/${project}/_git/${repo}       
+      displayName: 'GIT Retrieve Script from DevOps repo'
+      env:
+        SYSTEM_ACCESSTOKEN: $(system.accesstoken)
+
+    - task: AzurePowerShell@5
+      inputs:
+        azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+        ScriptPath: '$(System.DefaultWorkingDirectory)/DevOps/Scripts/Releases/UpdateSqlFirewallRule.ps1'
+        ScriptArguments:
+         -ResourceName "${{ variables.AZ_SQL_SERVER }}" `
+         -ResourceGroup "${{ variables.AZ_SQL_RESOURCE_GROUP }}"'
+        azurePowerShellVersion: LatestVersion
+      displayName: 'Azure Update SQL Firewall Rule'
