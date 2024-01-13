@@ -1,0 +1,48 @@
+parameters:
+- name: myParameterName
+  type: myDataType
+  default: myDefaultValue
+
+
+- name: image
+  displayName: Pool Image
+  type: string
+  default: ubuntu-latest
+  values:
+  - windows-latest
+  - ubuntu-latest
+  - macOS-latest
+
+variables:
+- name: myReadOnlyVar
+  value: myValue
+  readonly: true
+
+- name: eShopOnWeb
+  value: myValue
+  readonly: true   #U se the readonly property to ensure that variables aren't changed by a pipeline while it's running
+
+
+# Example using Azure Key Vault
+
+variables:
+ - name: eShopOnWeb
+   value: myValue
+
+# You can define variable groups to reuse variables across pipelines
+# and to manage sensitive data centrally.
+
+variables:
+- group: eShopOnWeb
+- name: ConnectionStrings.CatalogConnection
+  value: '$(CatalogConnectionToken)'
+
+
+
+variables:
+- name: myVariable
+  value: ''
+
+steps:
+- script: echo 'Validate required variable!'
+  condition: eq(variables['myVariable'], 'myRequiredValue') # Define and validate mandatory variables
