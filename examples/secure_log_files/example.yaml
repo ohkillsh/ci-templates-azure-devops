@@ -1,0 +1,31 @@
+steps:
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=nonSecretVar;]Now you can see me!"
+      Write-Host "##vso[task.setvariable variable=secretVar;issecret=true]Now you don't!"
+    name: SetVariables
+
+  - pwsh: |
+        Write-Host "The magician says: $env:NONSECRETVAR = Not a secret."
+        Write-Host "The magician says: $env:SECRETVAR = Yes, it's hidden, can't you see it? =)"
+        Write-Host "The magician says: $(secretVar) = It's encrypted."
+
+# OUTPUT
+#     The magician says: Now you can see me! = Not a secret.
+#     The magician says:  = Yes, it's hidden, can't you see it? =)
+#     The magician says: *** = It's encrypted.
+
+
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=outputVarTrue;isoutput=true]No, it's not a secret!"
+      Write-Host "##vso[task.setvariable variable=outputVarFalse;isoutput=false]Yes, it's a secret!"
+    name: SetVariables
+
+  - pwsh: |
+      Write-Host "Hidden out from the log: $env:SETVARIABLES_OUTPUTVARTRUE"
+      Write-Host "Hidden out from the log: $(SetVariables.outputVarTrue)"
+      Write-Host "Hidden out from the log: $env:SETVARIABLES_OUTPUTVARFALSE = Yes, it's hidden."
+
+# OUTPUT
+#    Hidden out from the log: No, it's not a secret!
+#    Hidden out from the log: No, it's not a secret!
+#    Hidden out from the log:  = Yes, it's hidden

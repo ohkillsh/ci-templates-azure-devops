@@ -1,0 +1,12 @@
+    steps:
+    - powershell: |
+        Write-Host "Using the mapped env var for this task works and is recommended: $env:MY_MAPPED_ENV_VAR"
+      env:
+        MY_MAPPED_ENV_VAR: $(service_bus_connection) # the recommended way to map to an env variable
+    
+    - task: PublishToAzureServiceBus@1
+      inputs:
+        azureSubscription: $(service_bus_connection)
+        messageBody: '"hello world!"'
+        signPayload: false
+        waitForCompletion: true
