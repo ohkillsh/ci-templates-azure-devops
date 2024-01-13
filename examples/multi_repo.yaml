@@ -1,0 +1,11 @@
+resources:
+  repositories:
+    - repository: eShopOnWeb
+      name: eShopOnWeb
+      type: git
+    - repository: implement-security-through-pipeline-using-devops
+      name: implement-security-through-pipeline-using-devops
+      type: git
+    - repository: MyWebApp
+      name: Contoso/MyWebApp
+      type: git

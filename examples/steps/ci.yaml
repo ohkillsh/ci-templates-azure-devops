@@ -1,0 +1,27 @@
+# File: ci.yaml
+
+jobs:
+
+- job: macOS
+  pool:
+    vmImage: 'macOS-latest'
+  steps:
+
+  - template: examples/steps/build.yaml # Template reference
+
+
+- job: Linux
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+
+  - template: examples/steps/build.yaml # Template reference
+
+
+- job: Windows
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+
+  - template: examples/steps/build.yaml # Template reference
+  - script: sign              # Extra step on Windows only

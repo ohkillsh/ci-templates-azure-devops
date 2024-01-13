@@ -1,0 +1,9 @@
+# File: component-y-pipeline.yaml
+variables:
+
+- template: variables/build.yaml  # Template reference
+pool:
+  vmImage: ${{ variables.vmImage }}
+steps:
+
+- script: build y ${{ variables.arch }} ${{ variables.config }}

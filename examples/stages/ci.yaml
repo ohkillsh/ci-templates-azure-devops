@@ -1,0 +1,13 @@
+# File: examples/stages/test.yaml
+
+stages:
+
+- template: examples/stages/test.yaml # Template reference
+  parameters:
+    name: Mini
+    testFile: tests/miniSuite.js
+
+- template: examples/stages/test.yaml
+  parameters:
+    name: Full
+    testFile: tests/fullSuite.js
