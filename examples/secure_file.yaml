@@ -1,0 +1,13 @@
+steps:
+- task: DownloadSecureFile@1
+  name: SecureFile
+  inputs:
+    secureFile: 'SecureFile.cer'
+  displayName: 'Download Secure File'
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: $(Agent.TempDirectory) # or use the file directly '$(SecureFile.secureFilePath)'
+    Contents: '**.cer'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\secrets'
+  displayName: 'Copy Secure File to Artifact Staging Directory'
