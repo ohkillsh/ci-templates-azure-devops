@@ -1,0 +1,190 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables: 
+  - name: SERVICE_CONNECTION_SUBSCRIPTION_PRD
+    value: 'NOME DA ASSINATURA'
+  - name: RESOURCE_GROUP_NAME_PRD
+    value: ''
+  - name: WEBAPP_NAME_PRD
+  - name: SERVICE_CONNECTION_SUBSCRIPTION_DEV
+  - name: RESOURCE_GROUP_NAME_DEV
+  - name: WEBAPP_NAME_DEV
+
+stages:
+- stage: Build
+
+  jobs:
+  - job: build
+  
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install --force
+        
+        # usado com transform
+        #npm run build:cd 
+        
+        # Default
+        npm run build
+
+      displayName: 'npm install and build'
+
+    - task: CopyFiles@2
+      displayName: 'Copy web.config to dist'
+      inputs:
+        SourceFolder: src
+        Contents: web.config
+        TargetFolder: build
+
+    - task: ArchiveFiles@1
+      displayName: 'Archive files'
+      inputs:
+        rootFolder: build
+        includeRootFolder: false
+        archiveType: zip
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish artifacts: drop'
+
+- stage: Development
+  displayName: 'Deploy to Development'
+  dependsOn: Build
+  condition: succeeded()
+  variables:
+    - group: development
+    - name: var1
+      value: "check value 1"
+    - name: var2
+      value: "check value 2"
+
+  jobs:
+  - deployment: DeploymentDevelopment
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: Development
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          
+          # Replace tokens;
+          - task: ExtractFiles@1
+            inputs:
+              archiveFilePatterns: '$(Pipeline.Workspace)/**/*.zip'
+              destinationFolder: '$(Pipeline.Workspace)/application'
+              cleanDestinationFolder: true
+              overwriteExistingFiles: false
+
+          - task: replacetokens@5
+            inputs:
+              targetFiles: '$(Pipeline.Workspace)/application/static/js/main.*.chunk.js'
+              encoding: 'auto'
+              tokenPattern: 'default'
+              writeBOM: true
+              actionOnMissing: 'warn'
+              keepToken: false
+              actionOnNoFiles: 'continue'
+              enableTransforms: false
+              enableRecursion: false
+              useLegacyPattern: false
+              enableTelemetry: true
+
+          - task: DeleteFiles@1
+            inputs:
+              SourceFolder: '$(Pipeline.Workspace)/drop/'
+              Contents: '*.zip'
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(Pipeline.Workspace)/application/'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              replaceExistingArchive: true
+          # //Replace tokens;
+
+          - task: AzureRmWebAppDeployment@4
+            displayName: 'Deploy Azure App Service'
+            inputs:
+              azureSubscription: ${{ variables.SERVICE_CONNECTION_SUBSCRIPTION_DEV }}
+              ResourceGroupName: ${{ variables.RESOURCE_GROUP_NAME_DEV }}
+              WebAppName: ${{ variables.WEBAPP_NAME_DEV }}
+              packageForLinux: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              #deployToSlotOrASE: true
+              #SlotName: stage
+
+
+- stage: Production
+  displayName: 'Deploy to Production'
+  dependsOn: [ Development ]
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  variables:
+  - group: production
+  jobs: 
+  - deployment: DeploymentJob
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: Production_Meep_Terminal
+    strategy:
+     runOnce:
+        deploy:
+          steps:
+
+          # Replace tokens;
+          - task: ExtractFiles@1
+            inputs:
+              archiveFilePatterns: '$(Pipeline.Workspace)/**/*.zip'
+              destinationFolder: '$(Pipeline.Workspace)/application'
+              cleanDestinationFolder: true
+              overwriteExistingFiles: false
+
+          - task: replacetokens@5
+            inputs:
+              targetFiles: '$(Pipeline.Workspace)/application/appsettings*.json'
+              encoding: 'auto'
+              tokenPattern: 'default'
+              writeBOM: true
+              actionOnMissing: 'warn'
+              keepToken: false
+              actionOnNoFiles: 'continue'
+              enableTransforms: false
+              enableRecursion: false
+              useLegacyPattern: false
+              enableTelemetry: true
+
+          - task: DeleteFiles@1
+            inputs:
+              SourceFolder: '$(Pipeline.Workspace)/drop/'
+              Contents: '*.zip'
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(Pipeline.Workspace)/application/'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              replaceExistingArchive: true
+          # //Replace tokens;
+
+          - task: AzureRmWebAppDeployment@4
+            displayName: 'Deploy Azure App Service'
+            inputs:
+              azureSubscription: ${{ variables.SERVICE_CONNECTION_SUBSCRIPTION_PRD }}
+              ResourceGroupName: ${{ variables.RESOURCE_GROUP_NAME_PRD }}
+              WebAppName: ${{ variables.WEBAPP_NAME_PRD}}
+              packageForLinux: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              #deployToSlotOrASE: true
+              #SlotName: stage
