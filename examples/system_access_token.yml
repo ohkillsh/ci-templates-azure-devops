@@ -8,17 +8,15 @@ steps:
         repo=${{ variables.repo_devops }}
 
         # Baerer Auth
-        echo "test 1"        
-        REGULAR_PAT=$(echo -n "${SYSTEM_ACCESSTOKEN}" | tr -d '\n')
-        echo $REGULAR_PAT
+        echo "Type Baerer Auth"        
         git clone -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" --branch main --depth 1 "https://${org}@dev.azure.com/${org}/${project}/_git/${repo}" 
 
         # Example using Basic Auth. The PAT must be in Base64 encoded
-        #echo "test 2"
+        #echo "Basic Auth"
         #B64_PAT=$(echo -n "${SYSTEM_ACCESSTOKEN})" | base64 | tr -d '\n')
         #git -c http.extraheader="AUTHORIZATION: Basic ${B64_PAT}" clone "https://${org}@dev.azure.com/${org}/${project}/_git/${repo}"
 
-        #echo "works"
+        #echo "Barrear Auth 2"
         #git clone https://${org}:$SYSTEM_ACCESSTOKEN@dev.azure.com/${org}/${project}/_git/${repo}
 
         # Example using temporary PAT token created for your own devops user
