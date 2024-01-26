@@ -1,0 +1,44 @@
+# name: Delete Branches
+ 
+# schedules:
+#   # run at midnight every day
+#   - cron: "0 0 * * *"
+#     displayName: Delete branches
+#     branches:
+#       include:
+#         - master
+# pool:
+#   vmImage: ubuntu-latest
+parameters:
+  - name: projectName
+    type: string
+  - name: repositoryName
+    type: string
+  
+  - name: excludeBranches
+    type: string
+    default: 
+  
+  - name: daysDeleteBefore
+    type: string
+    default: 31
+
+  - name: DRY_RUN
+    type: boolean
+    default: false
+
+steps:
+
+- script: |
+    az extension add -n azure-devops
+  displayName: Install Azure DevOps CLI
+
+- pwsh: scripts/repo/delete-pull-request-completed-branches.ps1 -project "${{ parameters.projectName }}" -repository "${{ parameters.repositoryName }}" -IS_DRY_RUN "${{ parameters.DRY_RUN }}"
+  env:
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+  displayName: 'Delete merged branches'
+  
+- pwsh: scripts/repo/delete-stale-branches.ps1 -project "${{ parameters.projectName }}" -repository "${{ parameters.repositoryName }}" -IS_DRY_RUN "${{ parameters.DRY_RUN }}" -daysDeleteBefore "${{ parameters.daysDeleteBefore }}"
+  env:
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+  displayName: 'Delete stale branches'
