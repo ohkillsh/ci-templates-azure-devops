@@ -12,8 +12,7 @@ $prsCompleted = az repos pr list `
     --repository $repository `
     --target-branch $targetBranch `
     --status completed `
-    --query "[].sourceRefName" |
-ConvertFrom-Json;
+    --query "[].sourceRefName" | ConvertFrom-Json;
 
 if ($prsCompleted.count -eq 0) {
     Write-Host "No merged pull request"
@@ -31,8 +30,7 @@ ForEach-Object {
             --name $_.name `
             --object-id $_.objectId `
             --project $project `
-            --repository $repository |
-        ConvertFrom-Json
+            --repository $repository | ConvertFrom-Json
         Write-Host ("success message: {0}" –f $result.updateStatus)
     }
 }

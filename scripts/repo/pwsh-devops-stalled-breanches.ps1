@@ -59,8 +59,7 @@ ForEach-Object {
             --name $_.name `
             --object-id $_.objectId `
             --project $project `
-            --repository $repository |
-        ConvertFrom-Json
+            --repository $repository | ConvertFrom-Json
         Write-Host ("success message: {0}" -f $result.updateStatus)
     }
 }
