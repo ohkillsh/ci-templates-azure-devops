@@ -1,0 +1,19 @@
+steps: 
+
+    - bash: |
+        git --version && git config --global http.version HTTP/1.1
+        
+        org="devops"
+        project="team_project"
+        repo=${{ variables.repo_devops }}
+
+        # Baerer Auth
+        echo "Type Baerer Auth"        
+        git clone -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" --branch main --depth 1 "https://${org}@dev.azure.com/${org}/${project}/_git/${repo}" 
+
+        #echo "Barrear Auth 2"
+        #git clone https://${org}:$SYSTEM_ACCESSTOKEN@dev.azure.com/${org}/${project}/_git/${repo}
+        
+      displayName: 'GIT Retrieve Script from DevOps repo'
+      env:
+        SYSTEM_ACCESSTOKEN: $(system.accesstoken)
