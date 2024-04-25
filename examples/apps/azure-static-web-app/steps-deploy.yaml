@@ -1,0 +1,22 @@
+parameters:
+  - name: artifactName
+    type: string
+    default: 'drop'
+  
+  - name: DeploymentToken
+    default: ''
+
+steps:
+
+- script: |
+    ls -lR "$(Pipeline.Workspace)/drop"
+  displayName: 'Validate Directory'
+
+- task: AzureStaticWebApp@0
+  inputs:
+    workingDirectory: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
+    app_location: /
+    skip_app_build: true
+    verbose: true
+    azure_static_web_apps_api_token: ${{ parameters.DeploymentToken }}
+  displayName: "Deploy"

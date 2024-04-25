@@ -1,0 +1,83 @@
+parameters:
+  - name: flutterVersion
+    type: string
+    default: '3.13.6'
+
+  - name: artifactName
+    type: string
+    default: 'drop'
+  
+  - name: AZ_DEVOPS_POOL
+    default: ''
+
+  - name: artifactToPublish
+    default: ''
+
+stages:
+- stage: "Build"
+  displayName: 'Build App'
+  jobs:
+
+  - job: BuildFlutter
+    pool:
+      vmImage: ${{ parameters.AZ_DEVOPS_POOL }}
+    steps:
+
+      - checkout: self
+        fetchDepth: 1
+      
+      - task: FlutterInstall@0
+        displayName: "Install Flutter SDK"
+        inputs:
+          version: custom
+          customVersion: ${{ parameters.flutterVersion }}
+
+      - task: Bash@3
+        displayName: "Get flutter version"
+        inputs:
+          targetType: inline
+          script: |
+            flutter --version
+
+      - task: Bash@3
+        displayName: "flutter Config"
+        inputs:
+          targetType: inline
+          script: |
+            flutter config --enable-web --no-analytics --disable-telemetry
+
+      - task: Bash@3
+        displayName: "Flutter Clean"
+        inputs:
+          targetType: inline
+          script: |
+            flutter clean
+      
+      - task: Bash@3
+        displayName: "Flutter get dependencies"
+        inputs:
+          targetType: inline
+          script: |
+            flutter pub get
+
+      - task: Bash@3
+        displayName: "Build flutter Web release"
+        inputs:
+          targetType: inline
+          script: |
+            flutter build web --release
+        continueOnError: true 
+        
+      - task: CopyFiles@2
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)/${{ parameters.artifactToPublish }}'
+          contents: "**"
+          targetFolder: '$(Build.ArtifactStagingDirectory)'
+        displayName: 'Copy project files'
+
+      - task: PublishPipelineArtifact@1
+        inputs:
+          artifactName: ${{ parameters.artifactName }}
+          targetPath: '$(Build.ArtifactStagingDirectory)'
+          publishLocation: 'pipeline'
+        displayName: 'Publish artifact'

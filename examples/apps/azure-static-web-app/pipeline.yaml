@@ -1,0 +1,55 @@
+trigger:
+- feature/web
+
+variables:
+  - name: AZ_DEVOPS_POOL
+    value: 'windows-latest' #'ubuntu-20.04'
+  - name: AZ_DEVOPS_POOL_DEPLOY
+    value: 'ubuntu-20.04'
+stages:
+- template: stage-build-flutter.yaml
+  parameters:
+    AZ_DEVOPS_POOL: $(AZ_DEVOPS_POOL)
+    artifactToPublish: 'build/web'
+    flutterVersion: '3.13.6'
+
+
+- stage: DeployDevelopment
+  dependsOn: [ build ]
+  #condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/development'))
+  variables:
+  - group: development
+  jobs:
+  - deployment: DeploymentDev
+    pool:
+      vmImage: $(AZ_DEVOPS_POOL_DEPLOY)
+    environment: Development
+    strategy:
+     runOnce:
+        deploy:
+          steps:
+          - template: steps-deploy.yaml
+            parameters:
+              DeploymentToken: $(static-web-site-token-deployment)
+
+- stage: DeployProduction
+  displayName: 'Deploy to Production'
+  dependsOn: [ DeployDevelopment ]
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  variables:
+  - group: production
+  jobs:
+  - deployment: DeploymentProduction
+    pool:
+      vmImage: $(AZ_DEVOPS_POOL_DEPLOY)
+    environment: Production
+    strategy:
+     runOnce:
+        deploy:
+          steps:
+          - template: steps-deploy.yaml
+            parameters:
+              DeploymentToken: $(static-web-site-token-deployment)
+
+
+

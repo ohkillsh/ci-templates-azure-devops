@@ -137,7 +137,7 @@ stages:
   - deployment: DeploymentJob
     pool:
       vmImage: 'ubuntu-latest'
-    environment: Production_Meep_Terminal
+    environment: Production_Infra
     strategy:
      runOnce:
         deploy:
