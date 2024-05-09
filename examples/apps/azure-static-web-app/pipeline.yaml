@@ -1,17 +1,19 @@
 trigger:
-- feature/web
+- main
 
 variables:
   - name: AZ_DEVOPS_POOL
     value: 'windows-latest' #'ubuntu-20.04'
   - name: AZ_DEVOPS_POOL_DEPLOY
     value: 'ubuntu-20.04'
+
 stages:
+
 - template: stage-build-flutter.yaml
   parameters:
     AZ_DEVOPS_POOL: $(AZ_DEVOPS_POOL)
     artifactToPublish: 'build/web'
-    flutterVersion: '3.13.6'
+    flutterVersion: '3.19.5'
 
 
 - stage: DeployDevelopment
@@ -31,11 +33,13 @@ stages:
           - template: steps-deploy.yaml
             parameters:
               DeploymentToken: $(static-web-site-token-deployment)
+              jsFileToReplaceTokens: '$(Pipeline.Workspace)/drop/main.dart.js'
 
 - stage: DeployProduction
   displayName: 'Deploy to Production'
   dependsOn: [ DeployDevelopment ]
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  #condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: succeeded()
   variables:
   - group: production
   jobs:
@@ -50,6 +54,4 @@ stages:
           - template: steps-deploy.yaml
             parameters:
               DeploymentToken: $(static-web-site-token-deployment)
-
-
-
+              jsFileToReplaceTokens: '$(Pipeline.Workspace)/drop/main.dart.js'
