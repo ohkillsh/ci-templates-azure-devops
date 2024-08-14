@@ -23,7 +23,7 @@ steps:
         $temporaryFolderPath = Join-Path "$(Agent.TempDirectory)" "git"
         New-Item -Path "$temporaryFolderPath" -ItemType "Directory"
 
-        $branchName = ("${{ parameters.TARGET_BRANCH_NAME }}" -eq $null) ? $null : $Build.SourceBranchName	
+        $branchName = ("${{ parameters.TARGET_BRANCH_NAME }}" -ne $null) ? "${{ parameters.TARGET_BRANCH_NAME }}" : "$(Build.SourceBranchName)"
         $repositoryName = "$(Build.Repository.Name)"
   
         Write-Information "Cloning branch $branchName in repository $repositoryName..."
@@ -59,6 +59,7 @@ steps:
         if ($LASTEXITCODE -ne 0) { throw "Pushing Git TAGS failed." }
 
         Write-Information "Deleting temporary folder contents..."
+        cd "$(Agent.TempDirectory)"
         Remove-Item -Path "$temporaryFolderPath" -Recurse -Force
 
         Write-Information "Execution complete."
