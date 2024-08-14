@@ -1,0 +1,60 @@
+parameters:
+  TARGET_BRANCH_NAME: "main"
+
+steps: 
+
+  - task: PowerShell@2
+    displayName: Create pull request
+    inputs:
+      targetType: "inline"
+      script: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        $VerbosePreference = "Continue"
+        $InformationPreference = "Continue"
+
+        Write-Information "Installing Azure DevOps extension..."
+        az extension add --name "azure-devops"
+        az devops configure --defaults organization="$(System.TeamFoundationCollectionUri)" project="$(System.TeamProject)"
+
+        Write-Information "Creating temporary folder..."
+        $temporaryFolderPath = Join-Path "$(Agent.TempDirectory)" "git"
+        New-Item -Path "$temporaryFolderPath" -ItemType "Directory"
+
+        $branchName = "${{ parameters.TARGET_BRANCH_NAME }}"
+        $temporaryBranchName = "artifacts-from-portal-build-$(Build.BuildId)"
+        $repositoryName = "${{ parameters.APIM_REPOSITORY_NAME }}"
+  
+        Write-Information "Cloning branch $branchName in repository $repositoryName..."
+        $cloneUrl = az repos show --repository "$repositoryName" --query "remoteUrl" --output tsv
+  
+        Write-Information "Clone URL is $cloneUrl"
+        git -c http.extraheader="AUTHORIZATION: Bearer $(System.AccessToken)" clone --branch "$branchName" --depth 1 "$cloneUrl" "$temporaryFolderPath"
+        if ($LASTEXITCODE -ne 0) { throw "Cloning branch $branchName in repository $repositoryName failed." }
+
+        Write-Information "Setting git user information..."
+        git config --global user.email "azuredevopsagent@azuredevops.com"
+        git config --global user.name "Azure Devops agent"
+
+        Write-Information "Committing TAG"
+        $commitOutput = git -C "$temporaryFolderPath" commit --allow-empty --message "Atualizador $(Build.BuildNumber)" && git tag -a $(Build.BuildNumber) -m "$(Build.BuildNumber)"
+        if ($LASTEXITCODE -ne 0) { 
+          if ($commitOutput.Contains("nothing to commit, working tree clean")) {
+            Write-Information "No changes exist to be published."
+            return
+          }
+          throw "Committing Git TAG failed." 
+        }
+
+        Write-Information "Pushing changes"
+        git -C "$temporaryFolderPath" -c http.extraheader="AUTHORIZATION: Bearer $(System.AccessToken)" push --tags --set-upstream origin "$branchName"
+        if ($LASTEXITCODE -ne 0) { throw "Pushing Git TAGS failed." }
+
+        Write-Information "Deleting temporary folder contents..."
+        Remove-Item -Path "$temporaryFolderPath" -Recurse -Force
+
+        Write-Information "Execution complete."
+
+      pwsh: true
+    env:
+      AZURE_DEVOPS_EXT_PAT: "$(System.AccessToken)"
