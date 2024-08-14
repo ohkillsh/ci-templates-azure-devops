@@ -31,18 +31,25 @@ steps:
         Write-Information "Clone URL is $cloneUrl"
         git -c http.extraheader="AUTHORIZATION: Bearer $(System.AccessToken)" clone --branch "$branchName" --depth 1 "$cloneUrl" "$temporaryFolderPath"
         if ($LASTEXITCODE -ne 0) { throw "Cloning branch $branchName in repository $repositoryName failed." }
+        cd "$temporaryFolderPath"
 
         Write-Information "Setting git user information..."
         git config --global user.email "azuredevopsagent@azuredevops.com"
         git config --global user.name "Azure Devops agent"
 
-        Write-Information "Committing TAG"
-        $commitOutput = git -C "$temporaryFolderPath" commit --allow-empty --message "ci: atualizador $(Build.BuildNumber)" && git tag -C "$temporaryFolderPath" -a $(Build.BuildNumber) -m "$(Build.BuildNumber)"
+        Write-Information "Commiting empty "
+        $commitEmptyOutput = git commit --allow-empty --message "ci: atualizador $(Build.BuildNumber)"
         if ($LASTEXITCODE -ne 0) { 
-          if ($commitOutput.Contains("nothing to commit, working tree clean")) {
+          if ($commitEmptyOutput.Contains("nothing to commit, working tree clean")) {
             Write-Information "No changes exist to be published."
             return
           }
+          throw "Committing Empty failed." 
+        }
+
+        Write-Information "Committing TAG"
+        $commitTagOutput = git tag -a $(Build.BuildNumber) -m "$(Build.BuildNumber)"
+        if ($LASTEXITCODE -ne 0) { 
           throw "Committing Git TAG failed." 
         }
 
