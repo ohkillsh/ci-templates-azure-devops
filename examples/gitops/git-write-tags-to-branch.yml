@@ -37,7 +37,7 @@ steps:
         git config --global user.name "Azure Devops agent"
 
         Write-Information "Committing TAG"
-        $commitOutput = git -C "$temporaryFolderPath" commit --allow-empty --message "Atualizador $(Build.BuildNumber)" && git tag -a $(Build.BuildNumber) -m "$(Build.BuildNumber)"
+        $commitOutput = git -C "$temporaryFolderPath" commit --allow-empty --message "ci: atualizador $(Build.BuildNumber)" && git tag -C "$temporaryFolderPath" -a $(Build.BuildNumber) -m "$(Build.BuildNumber)"
         if ($LASTEXITCODE -ne 0) { 
           if ($commitOutput.Contains("nothing to commit, working tree clean")) {
             Write-Information "No changes exist to be published."
