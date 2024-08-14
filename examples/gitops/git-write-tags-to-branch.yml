@@ -1,10 +1,12 @@
 parameters:
-  TARGET_BRANCH_NAME: "main"
+  - name: TARGET_BRANCH_NAME
+    type: string
+    default: null
 
 steps: 
 
   - task: PowerShell@2
-    displayName: Create pull request
+    displayName: Create GIT TAG
     inputs:
       targetType: "inline"
       script: |
@@ -21,9 +23,8 @@ steps:
         $temporaryFolderPath = Join-Path "$(Agent.TempDirectory)" "git"
         New-Item -Path "$temporaryFolderPath" -ItemType "Directory"
 
-        $branchName = "${{ parameters.TARGET_BRANCH_NAME }}"
-        $temporaryBranchName = "artifacts-from-portal-build-$(Build.BuildId)"
-        $repositoryName = "${{ parameters.APIM_REPOSITORY_NAME }}"
+        $branchName = ("${{ parameters.TARGET_BRANCH_NAME }}" -eq $null) ? $null : $Build.SourceBranchName	
+        $repositoryName = "$(Build.Repository.Name)"
   
         Write-Information "Cloning branch $branchName in repository $repositoryName..."
         $cloneUrl = az repos show --repository "$repositoryName" --query "remoteUrl" --output tsv
@@ -54,7 +55,7 @@ steps:
         }
 
         Write-Information "Pushing changes"
-        git -C "$temporaryFolderPath" -c http.extraheader="AUTHORIZATION: Bearer $(System.AccessToken)" push --tags --set-upstream origin "$branchName"
+        git -c http.extraheader="AUTHORIZATION: Bearer $(System.AccessToken)" push --tags --set-upstream origin "$branchName"
         if ($LASTEXITCODE -ne 0) { throw "Pushing Git TAGS failed." }
 
         Write-Information "Deleting temporary folder contents..."
