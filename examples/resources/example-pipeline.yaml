@@ -1,0 +1,24 @@
+resources:
+  pipelines:
+  - pipeline: pipeline-job-build
+    project: ProjectName
+    source: Pipeline_name_from_Azure_devops
+    branch: main
+  repositories:
+    - repository: CentralPipeline
+      type: git
+      name: DevOps/CentralPipeline
+      ref: main
+
+stages:
+
+- stage: PROD 
+  jobs: 
+  - deployment: Deploy
+    environment: PROD
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - template: Common.Templates/Build/write_tags_to_branch.yaml@CentralPipeline
