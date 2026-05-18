@@ -1,7 +1,7 @@
 parameters:
   - name: flutterVersion
     type: string
-    default: '3.13.6'
+    default: '3.19.5'
 
   - name: artifactName
     type: string
@@ -44,7 +44,7 @@ stages:
         inputs:
           targetType: inline
           script: |
-            flutter config --enable-web --no-analytics --disable-telemetry
+            flutter config --enable-web --disable-analytics
 
       - task: Bash@3
         displayName: "Flutter Clean"
@@ -65,8 +65,8 @@ stages:
         inputs:
           targetType: inline
           script: |
-            flutter build web --release
-        continueOnError: true 
+            flutter build web --release --dart-define="variable1=#{secret-to-replace}#"
+        #continueOnError: true 
         
       - task: CopyFiles@2
         inputs:

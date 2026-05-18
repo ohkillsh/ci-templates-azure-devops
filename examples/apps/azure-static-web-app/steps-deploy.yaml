@@ -6,11 +6,28 @@ parameters:
   - name: DeploymentToken
     default: ''
 
+  - name: jsFileToReplaceTokens
+    default: ''
+
 steps:
 
 - script: |
     ls -lR "$(Pipeline.Workspace)/drop"
   displayName: 'Validate Directory'
+
+- task: replacetokens@5
+  inputs:
+    targetFiles: "${{ parameters.jsFileToReplaceTokens }}"
+    encoding: 'auto'
+    tokenPattern: 'default'
+    writeBOM: true
+    actionOnMissing: 'warn'
+    keepToken: false
+    actionOnNoFiles: 'continue'
+    enableTransforms: false
+    enableRecursion: false
+    useLegacyPattern: false
+    enableTelemetry: true
 
 - task: AzureStaticWebApp@0
   inputs:
